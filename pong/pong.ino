@@ -41,6 +41,9 @@ uint8_t oled_buf[WIDTH * HEIGHT / 8];
 
 char result[48];
 
+int leftPos = 15;
+int rightPos = 15;
+
 void setup() {
   pinMode(LEFT_DIOD, OUTPUT);
   digitalWrite(LEFT_DIOD, LOW);
@@ -62,7 +65,7 @@ void setup() {
   /* display images of bitmap matrix */
   // SH1106_bitmap(0, 2, Signal816, 16, 8, oled_buf); 
   // SH1106_bitmap(24, 2,Bluetooth88, 8, 8, oled_buf); 
-  // SH1106_bitmap(40, 2, Msg816, 16, 8, oled_buf); 
+  SH1106_bitmap(40, 2, Msg816, 16, 8, oled_buf); 
   // SH1106_bitmap(64, 2, GPRS88, 8, 8, oled_buf); 
   // SH1106_bitmap(90, 2, Alarm88, 8, 8, oled_buf); 
   // SH1106_bitmap(112, 2, Bat816, 16, 8, oled_buf); 
@@ -79,12 +82,27 @@ void setup() {
   // SH1106_char3216(80, 16, ':', oled_buf);
   // SH1106_char3216(96, 16, '5', oled_buf);
   // SH1106_char3216(112, 16, '6', oled_buf);
-  SH1106_string(0,13,"______________________________________________________________________________________________________________________________",2,0,oled_buf);
-  SH1106_display(oled_buf); 
+
 }
 
 void loop() {
-  // Serial.print(analogRead(RIGHT_JOYSTICK));
+  SH1106_clear(oled_buf);
+  SH1106_string(0,13,"______________________________________________________________________________________________________________________________",2,0,oled_buf);
+
+  if(analogRead(LEFT_JOYSTICK) == 1023 && leftPos < 48) {
+    leftPos += 1; 
+  }
+  if(analogRead(LEFT_JOYSTICK) == 0 && leftPos > 15) {
+    leftPos -= 1; 
+  }
+
+  if(analogRead(RIGHT_JOYSTICK) == 1023 && rightPos < 48) {
+    rightPos += 1; 
+  }
+  if(analogRead(RIGHT_JOYSTICK) == 0 && rightPos > 15) {
+    rightPos -= 1; 
+  }
+
   // Serial.print("\n");
   // Serial.print(analogRead(LEFT_JOYSTICK));
   // Serial.print("\n");
@@ -97,6 +115,12 @@ void loop() {
   // delay(1000);
   sprintf(result, "Player1:%d   %d:Player2", scoreLeft, scoreRight);
   SH1106_string(0,0,result,12,1,oled_buf);
+  for(int i=0; i<15; i++){
+    SH1106_pixel(0,i+leftPos,'b',oled_buf);
+  }
+  for(int i=0; i<15; i++){
+    SH1106_pixel(127,i+rightPos,'b',oled_buf);
+  }
   SH1106_display(oled_buf); 
 }
 
