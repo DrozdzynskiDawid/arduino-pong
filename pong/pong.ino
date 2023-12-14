@@ -1,16 +1,3 @@
-/*****************************************************************************
-*
-* File                : oled.ino
-* Hardware Environment: Arduino UNO
-* Build Environment   : Arduino
-* Version             : V1.0.7
-*
-*                 (c) Copyright 2005-2017, WaveShare
-*                      http://www.waveshare.com
-*                      http://www.waveshare.net   
-*                         All Rights Reserved
-*
-*****************************************************************************/
 #include <SPI.h>
 #include <Wire.h>
 #include "sh1106.h"
@@ -34,93 +21,137 @@
 
 #define MAX_POINTS 5
 
-int scoreLeft = 0;
-int scoreRight = 0;
+int scoreLeft;
+int scoreRight;
 
 uint8_t oled_buf[WIDTH * HEIGHT / 8];
 
 char result[48];
 
-int leftPos = 15;
-int rightPos = 15;
+int leftPos;
+int rightPos;
+
+bool xDirection;
+bool yDirection;
+int xPos;
+int yPos;
+
+void gameStart(){
+  //ustawienie wartości początkowych gry
+    leftPos = 35;
+    rightPos = 35;
+
+    xDirection = random(0, 2);
+    yDirection = random(0, 2);
+    xPos = 64;
+    yPos = 32;
+    scoreRight = 0;
+    scoreLeft = 0;
+}
 
 void setup() {
+  //ustawienie pinów dla diod
   pinMode(LEFT_DIOD, OUTPUT);
   digitalWrite(LEFT_DIOD, LOW);
   pinMode(RIGHT_DIOD, OUTPUT);
   digitalWrite(RIGHT_DIOD, LOW);
 
-
-  Serial.begin(9600);
-  Serial.print("OLED Example\n");
-
-  /* display an image of bitmap matrix */
+  /* logo producenta */
   SH1106_begin();
   SH1106_clear(oled_buf);
   SH1106_bitmap(0, 0, Waveshare12864, 128, 64, oled_buf);
   SH1106_display(oled_buf);
-  delay(2000);
+  delay(500);
   SH1106_clear(oled_buf);
-
-  /* display images of bitmap matrix */
-  // SH1106_bitmap(0, 2, Signal816, 16, 8, oled_buf); 
-  // SH1106_bitmap(24, 2,Bluetooth88, 8, 8, oled_buf); 
-  SH1106_bitmap(40, 2, Msg816, 16, 8, oled_buf); 
-  // SH1106_bitmap(64, 2, GPRS88, 8, 8, oled_buf); 
-  // SH1106_bitmap(90, 2, Alarm88, 8, 8, oled_buf); 
-  // SH1106_bitmap(112, 2, Bat816, 16, 8, oled_buf); 
-
-  //SH1106_string(0, 52, "MUSIC", 12, 0, oled_buf); 
-  // SH1106_string(52, 52, "MENU", 12, 0, oled_buf); 
-  // SH1106_string(98, 52, "PHONE", 12, 0, oled_buf);
-
-  // SH1106_char3216(0, 16, '1', oled_buf);
-  // SH1106_char3216(16, 16, '2', oled_buf);
-  // SH1106_char3216(32, 16, ':', oled_buf);
-  // SH1106_char3216(48, 16, '3', oled_buf);
-  // SH1106_char3216(64, 16, '4', oled_buf);
-  // SH1106_char3216(80, 16, ':', oled_buf);
-  // SH1106_char3216(96, 16, '5', oled_buf);
-  // SH1106_char3216(112, 16, '6', oled_buf);
-
+  gameStart();
 }
 
 void loop() {
+//wyczyszczenie zawartości ekranu
   SH1106_clear(oled_buf);
-  SH1106_string(0,13,"______________________________________________________________________________________________________________________________",2,0,oled_buf);
 
+//przesuwanie paletek
   if(analogRead(LEFT_JOYSTICK) == 1023 && leftPos < 48) {
     leftPos += 1; 
-  }
-  if(analogRead(LEFT_JOYSTICK) == 0 && leftPos > 15) {
+  } else if(analogRead(LEFT_JOYSTICK) == 0 && leftPos > 15) {
     leftPos -= 1; 
-  }
-
-  if(analogRead(RIGHT_JOYSTICK) == 1023 && rightPos < 48) {
+  } else if(analogRead(RIGHT_JOYSTICK) == 1023 && rightPos < 48) {
     rightPos += 1; 
-  }
-  if(analogRead(RIGHT_JOYSTICK) == 0 && rightPos > 15) {
+  } else if(analogRead(RIGHT_JOYSTICK) == 0 && rightPos > 15) {
     rightPos -= 1; 
   }
 
-  // Serial.print("\n");
-  // Serial.print(analogRead(LEFT_JOYSTICK));
-  // Serial.print("\n");
+// zmiana pozycji piłeczki
+  if(xDirection && yDirection){
+    xPos += 1;
+    yPos += 1;
+  } else if(!xDirection && yDirection){
+    xPos -= 1;
+    yPos += 1;
+  } else if(xDirection && !yDirection){
+    xPos += 1;
+    yPos -= 1;
+  } else if(!xDirection && !yDirection){
+    xPos -= 1;
+    yPos -= 1;
+  }
 
-  // digitalWrite(RIGHT_DIOD, HIGH); 
-  // digitalWrite(LEFT_DIOD, HIGH);
-  // delay(1000); 
-  // digitalWrite(RIGHT_DIOD, LOW); 
-  // digitalWrite(LEFT_DIOD, LOW);
-  // delay(1000);
+// zmiana kierunku piłeczki w osi y
+  if(yPos == 17 || yPos == 63) yDirection = !yDirection;
+
+//wyświetlenie wyniku
   sprintf(result, "Player1:%d   %d:Player2", scoreLeft, scoreRight);
+  SH1106_string(0,13,"______________________________________________________________________________________________________________________________",2,0,oled_buf);
   SH1106_string(0,0,result,12,1,oled_buf);
+
+//rysowanie paletek
   for(int i=0; i<15; i++){
     SH1106_pixel(0,i+leftPos,'b',oled_buf);
   }
   for(int i=0; i<15; i++){
     SH1106_pixel(127,i+rightPos,'b',oled_buf);
   }
+
+// odbicie paletką
+  if((xPos == 1 && leftPos <= yPos && leftPos + 15 >= yPos) ||
+    (xPos == 126 && rightPos <= yPos && rightPos + 15 >= yPos)) xDirection = !xDirection;
+
+//gol
+  if(xPos == 0){
+    xPos = 64;
+    yPos = 32;
+    digitalWrite(LEFT_DIOD, HIGH);
+    delay(100);
+    digitalWrite(LEFT_DIOD, LOW);
+    scoreRight += 1;
+  } else if(xPos == 127){
+    xPos = 64;
+    yPos = 32;
+    digitalWrite(RIGHT_DIOD, HIGH);
+    delay(100);
+    digitalWrite(RIGHT_DIOD, LOW);
+    scoreLeft += 1;
+  }
+
+//koniec gry
+  if(scoreRight == MAX_POINTS){
+    SH1106_clear(oled_buf);
+    SH1106_string(10,25,"Winner Player2",15,1,oled_buf);
+    SH1106_display(oled_buf);  
+    delay(1000);
+    gameStart();
+  } else if(scoreLeft == MAX_POINTS){
+    SH1106_clear(oled_buf);
+    SH1106_string(10,25,"Winner Player1",15,1,oled_buf);
+    SH1106_display(oled_buf);  
+    delay(1000);
+    gameStart();
+  }
+
+// rysowanie piłeczki
+  SH1106_pixel(xPos, yPos,'b',oled_buf);
+
+//wyświetlenie treści na ekranie
   SH1106_display(oled_buf); 
 }
 
